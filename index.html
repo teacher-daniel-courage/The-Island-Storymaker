@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Path.er</title>
+  <meta name="description" content="Make choose-your-path games: a GIF, a bit of story and up to four choices per scene.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-current="page">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="19" r="2.6"/><circle cx="12" cy="19" r="2.6"/><circle cx="19" cy="19" r="2.6"/><path d="M12 7.5v9M12 10l-6.2 6.8M12 10l6.2 6.8" fill="none" stroke-width="1.8"/></svg>
+      </span>
+      Path.er
+    </a>
+    <nav class="header-actions" aria-label="Site">
+      <a class="btn" href="about.html">About</a>
+    </nav>
+  </header>
+
+  <main class="landing">
+    <section class="hero">
+      <p class="eyebrow">Choose-your-path games</p>
+      <h1>Every choice leads somewhere</h1>
+      <p class="lead">Each scene is a GIF, a bit of story and up to four choices. Players pick one and find out where it goes: another scene, an early death, or the way off the island.</p>
+    </section>
+
+    <div class="paths">
+      <a class="path-card" href="storymaker.html">
+        <div class="path-art path-art-make" aria-hidden="true">
+          <svg viewBox="0 0 320 150">
+            <g class="art-links">
+              <path d="M160 40 C160 56 70 50 70 66"/>
+              <path d="M160 40 V66"/>
+              <path d="M160 40 C160 56 250 50 250 66"/>
+              <path d="M70 92 C70 102 96 102 96 112"/>
+              <path d="M160 92 C160 102 96 102 96 112"/>
+              <path d="M160 92 C160 102 180 102 180 112"/>
+              <path d="M250 92 C250 102 180 102 180 112"/>
+              <path d="M250 92 C250 102 266 102 266 112"/>
+            </g>
+            <g class="art-node"><rect x="122" y="14" width="76" height="26" rx="7"/><circle cx="136" cy="27" r="4"/><rect class="art-line" x="146" y="24.5" width="40" height="5" rx="2.5"/></g>
+            <g class="art-node"><rect x="32" y="66" width="76" height="26" rx="7"/><circle cx="46" cy="79" r="4"/><rect class="art-line" x="56" y="76.5" width="36" height="5" rx="2.5"/></g>
+            <g class="art-node"><rect x="122" y="66" width="76" height="26" rx="7"/><circle cx="136" cy="79" r="4"/><rect class="art-line" x="146" y="76.5" width="42" height="5" rx="2.5"/></g>
+            <g class="art-node"><rect x="212" y="66" width="76" height="26" rx="7"/><circle cx="226" cy="79" r="4"/><rect class="art-line" x="236" y="76.5" width="32" height="5" rx="2.5"/></g>
+            <g class="art-node is-death"><rect x="58" y="112" width="76" height="26" rx="7"/><circle cx="72" cy="125" r="4"/><rect class="art-line" x="82" y="122.5" width="38" height="5" rx="2.5"/></g>
+            <g class="art-node"><rect x="142" y="112" width="76" height="26" rx="7"/><circle cx="156" cy="125" r="4"/><rect class="art-line" x="166" y="122.5" width="34" height="5" rx="2.5"/></g>
+            <g class="art-node is-ending"><rect x="228" y="112" width="76" height="26" rx="7"/><circle cx="242" cy="125" r="4"/><rect class="art-line" x="252" y="122.5" width="40" height="5" rx="2.5"/></g>
+          </svg>
+        </div>
+        <div class="path-body">
+          <h2>Make a story</h2>
+          <p>Write your scenes, choose where each option leads, and see the whole story as a map. Your work saves in this browser as you go.</p>
+          <span class="path-cta">Open the Storymaker <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+
+      <a class="path-card" href="play.html">
+        <div class="path-art path-art-play" aria-hidden="true">
+          <svg viewBox="0 0 320 150">
+            <defs><clipPath id="artGifClip"><rect x="88" y="39" width="144" height="54" rx="4"/></clipPath></defs>
+            <rect class="art-panel" x="74" y="14" width="172" height="150" rx="12"/>
+            <rect class="art-title" x="130" y="25" width="60" height="6" rx="3"/>
+            <g class="art-gif" clip-path="url(#artGifClip)">
+              <rect class="art-sky" x="88" y="39" width="144" height="54" rx="4"/>
+              <circle class="art-sun" cx="208" cy="54" r="8"/>
+              <ellipse class="art-sand" cx="138" cy="94" rx="40" ry="12"/>
+              <path class="art-trunk" d="M140 84 C140 74 136 66 132 60"/>
+              <path class="art-leaf" d="M132 60 C124 56 116 58 112 64 C120 60 126 60 132 60 Z M132 60 C138 53 147 53 152 58 C145 57 139 58 132 60 Z M132 60 C130 52 123 48 117 50 C123 52 128 55 132 60 Z"/>
+            </g>
+            <rect class="art-option" x="88" y="103" width="44" height="40" rx="7" fill="#d2412f"/>
+            <rect class="art-option" x="138" y="103" width="44" height="40" rx="7" fill="#1f6fbf"/>
+            <rect class="art-option" x="188" y="103" width="44" height="40" rx="7" fill="#13805d"/>
+            <g class="art-letter">
+              <text x="110" y="119">A</text>
+              <text x="160" y="119">B</text>
+              <text x="210" y="119">C</text>
+            </g>
+            <g class="art-desc">
+              <rect x="98" y="126" width="24" height="3" rx="1.5"/><rect x="101" y="132" width="18" height="3" rx="1.5"/>
+              <rect x="148" y="126" width="24" height="3" rx="1.5"/><rect x="151" y="132" width="18" height="3" rx="1.5"/>
+              <rect x="198" y="126" width="24" height="3" rx="1.5"/><rect x="201" y="132" width="18" height="3" rx="1.5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="path-body">
+          <h2>Play a story</h2>
+          <p>Open a story file from the Storymaker and play it the way your players will. No story yet? You can try <cite>The Cast Away</cite>.</p>
+          <span class="path-cta">Open a story file <span aria-hidden="true">→</span></span>
+        </div>
+      </a>
+    </div>
+
+    <section class="flow" aria-labelledby="flowTitle">
+      <h2 id="flowTitle">How it works</h2>
+      <ol class="flow-steps">
+        <li>
+          <span class="flow-num" aria-hidden="true">1</span>
+          <h3>Write it</h3>
+          <p>In the Storymaker, add scenes and connect each option to the scene it leads to.</p>
+        </li>
+        <li>
+          <span class="flow-num" aria-hidden="true">2</span>
+          <h3>Export it</h3>
+          <p><b>File → Export story file</b> saves the whole story as one <code>.story.json</code> file.</p>
+        </li>
+        <li>
+          <span class="flow-num" aria-hidden="true">3</span>
+          <h3>Play it</h3>
+          <p>Open that file in <b>Play a story</b>, or send it to someone so they can play it too.</p>
+        </li>
+      </ol>
+    </section>
+  </main>
+</body>
+</html>

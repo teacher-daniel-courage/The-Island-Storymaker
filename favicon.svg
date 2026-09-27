@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The Storymaker mark from the top bar, redrawn with more space between the dots so it reads at tab size. -->
+  <rect width="32" height="32" rx="8" fill="#dbc5cb"/>
+  <g fill="#1b1b1f">
+    <circle cx="16" cy="8" r="3.2"/>
+    <circle cx="6.8" cy="23.6" r="3.2"/>
+    <circle cx="16" cy="23.6" r="3.2"/>
+    <circle cx="25.2" cy="23.6" r="3.2"/>
+  </g>
+  <path d="M16 10v11M16 12.5l-8.2 9M16 12.5l8.2 9" fill="none" stroke="#1b1b1f" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

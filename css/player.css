@@ -1,0 +1,318 @@
+/* Island Player: the game page and the scene box. */
+
+/* One color per option, readable with white text: coral, ocean, palm, orchid. */
+:root {
+  --ip-a: #d2412f;
+  --ip-b: #1f6fbf;
+  --ip-c: #13805d;
+  --ip-d: #8347d6;
+}
+
+[data-letter="A"] { --letter-color: var(--ip-a); }
+[data-letter="B"] { --letter-color: var(--ip-b); }
+[data-letter="C"] { --letter-color: var(--ip-c); }
+[data-letter="D"] { --letter-color: var(--ip-d); }
+
+.ip-page {
+  background: #fff;
+  color: #111;
+  padding: 36px 32px 48px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.ip-site-title {
+  margin: 0 0 24px;
+  text-align: center;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.ip-stage {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* --ip-bg is set per scene; .is-dark flips the text and details to light. */
+.ip-panel {
+  --ip-bg: #fff;
+  --ip-ink: #111;
+  --ip-soft: rgba(17, 17, 17, 0.06);
+  --ip-faint: rgba(17, 17, 17, 0.35);
+  --ip-death: #b3261e;
+  --ip-win: #1b6b53;
+  position: relative;
+  container-type: inline-size;
+  background: var(--ip-bg);
+  color: var(--ip-ink);
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.08), 0 2px 10px rgba(17, 17, 17, 0.06);
+  padding: 16px 26px 30px;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.ip-panel.is-dark {
+  --ip-ink: #fff;
+  --ip-soft: rgba(255, 255, 255, 0.08);
+  --ip-faint: rgba(255, 255, 255, 0.45);
+  --ip-death: #ff8f8a;
+  --ip-win: #6fdcb6;
+}
+
+.ip-animate .ip-panel {
+  animation: ip-enter 0.35s ease both;
+}
+
+/* Lives */
+.ip-lives {
+  display: flex;
+  justify-content: flex-end;
+  gap: 3px;
+  min-height: 20px;
+  margin-right: -8px;
+}
+
+.ip-heart {
+  width: 20px;
+  height: 20px;
+}
+
+.ip-heart.is-full path {
+  fill: #d2334a;
+}
+
+.ip-heart.is-empty path {
+  fill: none;
+  stroke: var(--ip-faint);
+  stroke-width: 2;
+}
+
+.ip-heart.is-breaking {
+  animation: ip-heart-break 0.7s ease;
+}
+
+/* Scene */
+.ip-title {
+  margin: 2px 0 18px;
+  text-align: center;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.ip-title:focus {
+  outline: none;
+}
+
+.ip-media {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto 18px;
+  background: var(--ip-soft);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ip-media.has-image {
+  aspect-ratio: auto;
+  background: transparent;
+}
+
+.ip-media.is-loading {
+  min-height: 160px;
+  background: var(--ip-soft);
+}
+
+.ip-media.is-broken {
+  aspect-ratio: 16 / 9;
+  background: var(--ip-soft);
+}
+
+.ip-media.is-broken img {
+  display: none;
+}
+
+.ip-media.is-broken::after {
+  content: "This GIF couldn’t be loaded. Check the link.";
+  font-size: 14px;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.ip-media img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 6px;
+}
+
+.ip-media-empty {
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 300;
+  opacity: 0.55;
+}
+
+.ip-text {
+  max-width: 48ch;
+  margin: 0 auto 22px;
+  text-align: center;
+  font-size: 15.5px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* Options */
+.ip-options {
+  --cols: 3;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ip-options[data-count="1"] { --cols: 1; max-width: 220px; margin: 0 auto; }
+.ip-options[data-count="2"] { --cols: 2; max-width: 460px; margin: 0 auto; }
+.ip-options[data-count="4"] { --cols: 4; }
+
+@container (max-width: 540px) {
+  .ip-options[data-count="4"] { --cols: 2; }
+}
+
+@container (max-width: 340px) {
+  .ip-options[data-count] { --cols: 1; }
+}
+
+.ip-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 124px;
+  padding: 14px 12px 18px;
+  background: var(--letter-color, #000);
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ip-option:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+.ip-option:focus-visible {
+  outline: 3px solid var(--ip-ink);
+  outline-offset: 3px;
+}
+
+.ip-option.is-unlinked {
+  opacity: 0.55;
+  outline: 2px dashed rgba(255, 255, 255, 0.7);
+  outline-offset: -6px;
+}
+
+.ip-letter {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ip-desc {
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+.ip-placeholder {
+  font-style: italic;
+  opacity: 0.55;
+}
+
+.ip-note {
+  margin: 0;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Death and ending */
+.ip-outcome {
+  text-align: center;
+}
+
+.ip-outcome-text {
+  margin: 0 0 12px;
+  font-weight: 700;
+}
+
+.ip-outcome.is-death .ip-outcome-text { color: var(--ip-death); }
+.ip-outcome.is-ending .ip-outcome-text { color: var(--ip-win); }
+
+.ip-action {
+  padding: 12px 26px;
+  background: var(--ip-ink);
+  color: var(--ip-bg);
+  border: 0;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.ip-action:hover {
+  transform: translateY(-2px);
+}
+
+.ip-action:focus-visible {
+  outline: 3px solid var(--ip-ink);
+  outline-offset: 3px;
+}
+
+.ip-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  background: var(--ip-ink);
+  color: var(--ip-bg);
+  border-radius: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+  animation: ip-fade 0.2s ease;
+}
+
+@keyframes ip-enter {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes ip-fade {
+  from { opacity: 0; }
+}
+
+@keyframes ip-heart-break {
+  0% { transform: scale(1.35); }
+  40% { transform: scale(0.7) rotate(-12deg); }
+  100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ip-animate .ip-panel,
+  .ip-heart.is-breaking,
+  .ip-toast {
+    animation: none;
+  }
+  .ip-option,
+  .ip-action {
+    transition: none;
+  }
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Storymaker · Path.er</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/player.css">
+  <link rel="stylesheet" href="css/storymaker.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="btn back-btn" href="index.html"><span aria-hidden="true">←</span> Back to start</a>
+    <a class="brand" href="index.html" title="Back to the home page">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="19" r="2.6"/><circle cx="12" cy="19" r="2.6"/><circle cx="19" cy="19" r="2.6"/><path d="M12 7.5v9M12 10l-6.2 6.8M12 10l6.2 6.8" fill="none" stroke-width="1.8"/></svg>
+      </span>
+      Storymaker
+    </a>
+    <span class="topbar-divider" aria-hidden="true"></span>
+    <input id="storyTitle" class="story-title" type="text" aria-label="Story title" placeholder="Story title">
+    <div class="lives-control" title="How many lives players start with. Go below 1 to turn lives off: no hearts, and players can retry as often as they like.">
+      <span class="lives-label">
+        <svg class="lives-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        Lives
+      </span>
+      <button type="button" id="livesDown" class="lives-btn" aria-label="Fewer lives">−</button>
+      <output id="livesValue" aria-live="polite">2</output>
+      <button type="button" id="livesUp" class="lives-btn" aria-label="More lives">+</button>
+    </div>
+    <div class="spacer"></div>
+    <span id="saveStatus" class="save-status" role="status"></span>
+    <div class="popover-wrap">
+      <button type="button" id="issuesBtn" class="btn issues-btn" aria-expanded="false" aria-controls="issuesPanel"></button>
+      <div id="issuesPanel" class="popover" hidden></div>
+    </div>
+    <div class="popover-wrap">
+      <button type="button" id="menuBtn" class="btn" aria-expanded="false" aria-controls="menuPanel">File ▾</button>
+      <div id="menuPanel" class="popover menu" hidden>
+        <button type="button" data-menu="export">Export story file</button>
+        <button type="button" data-menu="import">Import story file…</button>
+        <hr>
+        <button type="button" data-menu="new">New blank story</button>
+        <button type="button" data-menu="sample">Load “The Cast Away” sample</button>
+      </div>
+    </div>
+    <button type="button" id="playBtn" class="btn btn-primary">▶ Play</button>
+    <input type="file" id="importInput" accept=".json,application/json" hidden>
+  </header>
+
+  <div class="workspace">
+    <aside class="sidebar" aria-label="Scenes">
+      <div class="sidebar-head">
+        <h2>Scenes <span id="sceneCount" class="count"></span></h2>
+        <button type="button" id="addSceneBtn" class="btn btn-small">+ New scene</button>
+      </div>
+      <nav id="sceneList" class="scene-list"></nav>
+      <div class="legend sidebar-legend">
+        <span class="legend-item"><i class="type-dot type-choice"></i>Choice</span>
+        <span class="legend-item"><i class="type-dot type-death"></i>Death</span>
+        <span class="legend-item"><i class="type-dot type-ending"></i>Happy ending</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab" role="tab" data-view="scene" aria-selected="true" aria-controls="sceneView">Scene</button>
+        <button type="button" class="tab" role="tab" data-view="map" aria-selected="false" aria-controls="mapView">Map</button>
+      </div>
+      <section id="sceneView" class="view" role="tabpanel"></section>
+      <section id="mapView" class="view map-view" role="tabpanel" hidden>
+        <div class="map-toolbar">
+          <div class="legend">
+            <span class="legend-item"><i class="type-dot type-choice"></i>Choice</span>
+            <span class="legend-item"><i class="type-dot type-death"></i>Death</span>
+            <span class="legend-item"><i class="type-dot type-ending"></i>Happy ending</span>
+          </div>
+          <p class="map-hint">Click a scene to edit it. + adds an option; hover a scene to delete it. Letters on lines are options.</p>
+          <div class="zoom">
+            <button type="button" class="btn btn-small" data-zoom="-1" aria-label="Zoom out">−</button>
+            <span id="zoomValue" class="zoom-value">100%</span>
+            <button type="button" class="btn btn-small" data-zoom="1" aria-label="Zoom in">+</button>
+            <button type="button" class="btn btn-small" data-zoom="fit">Fit</button>
+          </div>
+        </div>
+        <div id="mapScroll" class="map-scroll"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="playOverlay" class="play-overlay" role="dialog" aria-modal="true" aria-label="Play the story" hidden></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="js/sample-story.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/storymaker.js"></script>
+</body>
+</html>
