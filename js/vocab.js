@@ -300,7 +300,7 @@
   }
 
   function newWord() {
-    return { id: newId(), word: '', image: null, audio: null };
+    return { id: newId(), word: '', meaning: '', pos: '', image: null, audio: null };
   }
 
   function usableWords(list) {
@@ -308,7 +308,7 @@
   }
 
   function pruneEmptyWords(list) {
-    const kept = list.words.filter((w) => w.word.trim() || w.image || w.audio);
+    const kept = list.words.filter((w) => w.word.trim() || w.meaning || w.image || w.audio);
     if (kept.length !== list.words.length) {
       list.words = kept;
       scheduleSave(list);
@@ -320,6 +320,7 @@
   function showEdit(list) {
     current = list;
     activeRowId = null;
+    lookups.clear();
     document.title = `${list.name || 'Untitled list'} · ${PAGE_TITLE}`;
     setBack(true);
     els.editView.hidden = false;
@@ -329,10 +330,12 @@
   }
 
   function updateCount() {
-    const n = usableWords(current).length;
-    const withPictures = current.words.filter((w) => w.word.trim() && w.image).length;
+    const words = usableWords(current);
+    const n = words.length;
+    const withPictures = words.filter((w) => w.image).length;
+    const withMeanings = words.filter((w) => w.meaning.trim()).length;
     els.wordCount.textContent = n
-      ? `${plural(n, 'word')}, ${withPictures} with a picture`
+      ? `${plural(n, 'word')}: ${withMeanings} with a meaning, ${withPictures} with a picture`
       : 'No words yet';
     els.reviewBtn.disabled = n === 0;
   }
@@ -346,10 +349,11 @@
   function refreshRow(word) {
     const row = els.wordRows.querySelector(`[data-id="${word.id}"]`);
     if (!row) return;
-    const hadFocus = row.contains(document.activeElement) && document.activeElement.classList.contains('vw-word');
+    const focused = row.contains(document.activeElement) && ['vw-word', 'vw-meaning']
+      .find((c) => document.activeElement.classList.contains(c));
     const fresh = buildRow(word, current.words.indexOf(word));
     row.replaceWith(fresh);
-    if (hadFocus) fresh.querySelector('.vw-word').focus();
+    if (focused) fresh.querySelector(`.${focused}`).focus();
     updateCount();
   }
 
@@ -390,8 +394,9 @@
       pic.append(add);
     }
 
-    // Word and sound
+    // Word, meaning and sound
     const main = el('div', 'vw-main');
+    const line = el('div', 'vw-line');
     const input = el('input', 'vw-word');
     input.type = 'text';
     input.value = word.word;
@@ -399,6 +404,69 @@
     input.autocomplete = 'off';
     input.spellcheck = false;
     input.setAttribute('aria-label', `Word ${index + 1}`);
+    const lookupBtn = el('button', 'btn vw-lookup', 'Look up meaning');
+    lookupBtn.type = 'button';
+    lookupBtn.dataset.act = 'lookup';
+    line.append(input, lookupBtn);
+
+    const meaningWrap = el('div', 'vw-meaning-wrap');
+    if (word.pos) {
+      const tag = el('span', 'vw-pos', word.pos);
+      const clear = el('button', 'vw-pos-clear');
+      clear.type = 'button';
+      clear.dataset.act = 'clear-pos';
+      clear.setAttribute('aria-label', `Remove “${word.pos}”`);
+      clear.innerHTML = ICONS.close;
+      tag.append(clear);
+      meaningWrap.append(tag);
+    }
+    const meaning = el('textarea', 'vw-meaning');
+    meaning.rows = 2;
+    meaning.value = word.meaning;
+    meaning.placeholder = 'Meaning, shown with the answer. Type it, or click Look up meaning.';
+    meaning.setAttribute('aria-label', `Meaning of word ${index + 1}`);
+    meaningWrap.append(meaning);
+
+    const lookup = lookups.get(word.id);
+    let choices = null;
+    if (lookup) {
+      choices = el('div', 'vw-choices');
+      choices.setAttribute('role', 'region');
+      choices.setAttribute('aria-label', `Meanings of “${lookup.word}”`);
+      if (lookup.status === 'loading') {
+        choices.append(el('p', 'vw-choices-note', `Looking up “${lookup.word}”…`));
+      } else if (lookup.status === 'error') {
+        choices.append(el('p', 'vw-choices-note is-error', lookup.message));
+      } else {
+        choices.append(el('p', 'vw-choices-note', `Click the meaning you taught (you can edit it after):`));
+        const ul = el('ul');
+        lookup.choices.forEach((c, i) => {
+          const li = el('li');
+          const pick = el('button', 'vw-choice');
+          pick.type = 'button';
+          pick.dataset.act = 'pick-meaning';
+          pick.dataset.choice = String(i);
+          pick.append(el('span', 'vw-choice-pos', c.pos), document.createTextNode(c.meaning));
+          li.append(pick);
+          ul.append(li);
+        });
+        choices.append(ul);
+        const source = el('p', 'vw-choices-source');
+        source.append('Meanings from ');
+        const a = el('a', null, lookup.sourceName);
+        a.href = lookup.sourceUrl;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        source.append(a, '.');
+        choices.append(source);
+      }
+      const close = el('button', 'vw-choices-close');
+      close.type = 'button';
+      close.dataset.act = 'close-lookup';
+      close.setAttribute('aria-label', 'Close the meanings');
+      close.innerHTML = ICONS.close;
+      choices.append(close);
+    }
 
     const sound = el('div', 'vw-sound');
     sound.append(iconButton('speak', ICONS.speaker, 'Computer voice'));
@@ -416,7 +484,9 @@
     } else {
       sound.append(iconButton('record', ICONS.mic, 'Record my voice'));
     }
-    main.append(input, sound);
+    main.append(line, meaningWrap);
+    if (choices) main.append(choices);
+    main.append(sound);
 
     const del = el('button', 'vw-delete');
     del.type = 'button';
@@ -615,6 +685,116 @@
     if (recording.recorder.state !== 'inactive') recording.recorder.stop();
   }
 
+  // ---------- Dictionary meanings
+  // Wiktionary first; the Free Dictionary API if Wiktionary can't be reached.
+
+  const lookups = new Map(); // word id -> { status, word, choices, message, sourceName, sourceUrl }
+  const MAX_CHOICES = 8;
+
+  function htmlToText(html) {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    div.querySelectorAll('ul, ol, dl').forEach((n) => n.remove()); // nested examples
+    return div.textContent.replace(/\s+/g, ' ').trim();
+  }
+
+  // Dictionaries group meanings by sense ("bank" of money, "bank" of a river).
+  // Take the first meaning of each group, then the second, and so on, so the
+  // short list of choices covers every sense, not just the first.
+  function mixGroups(groups) {
+    const mixed = [];
+    for (let i = 0; mixed.length < MAX_CHOICES && groups.some((g) => i < g.length); i += 1) {
+      for (const g of groups) if (i < g.length && mixed.length < MAX_CHOICES) mixed.push(g[i]);
+    }
+    return mixed;
+  }
+
+  async function fromWiktionary(term) {
+    // Lowercase first, so "Apple" finds the fruit, not the company.
+    for (const t of new Set([term.toLowerCase(), term])) {
+      const res = await fetch(`https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(t.replace(/ /g, '_'))}`);
+      if (res.status === 404) continue;
+      if (!res.ok) throw new Error(`Wiktionary answered ${res.status}`);
+      const data = await res.json();
+      const entries = (data.en || []).filter((e) => !/proper noun/i.test(e.partOfSpeech));
+      const groups = entries.map((entry) => (entry.definitions || [])
+        .map((d) => ({ pos: entry.partOfSpeech.toLowerCase(), meaning: htmlToText(d.definition || '') }))
+        .filter((c) => c.meaning));
+      const choices = mixGroups(groups);
+      if (choices.length) {
+        return { choices, sourceName: 'Wiktionary', sourceUrl: `https://en.wiktionary.org/wiki/${encodeURIComponent(t.replace(/ /g, '_'))}#English` };
+      }
+    }
+    return null;
+  }
+
+  async function fromFreeDictionary(term) {
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(term.toLowerCase())}`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Free Dictionary answered ${res.status}`);
+    const groups = [];
+    for (const entry of await res.json()) {
+      for (const m of entry.meanings || []) {
+        groups.push((m.definitions || [])
+          .filter((d) => d.definition)
+          .map((d) => ({ pos: m.partOfSpeech, meaning: d.definition.trim() })));
+      }
+    }
+    const choices = mixGroups(groups);
+    return choices.length ? { choices, sourceName: 'the Free Dictionary', sourceUrl: 'https://dictionaryapi.dev/' } : null;
+  }
+
+  async function lookUp(word) {
+    const term = word.word.trim();
+    if (!term) {
+      showToast('Type the word first.');
+      return;
+    }
+    lookups.set(word.id, { status: 'loading', word: term });
+    refreshRow(word);
+
+    let found = null;
+    let answered = false; // a dictionary was reached, even if it had no meaning
+    for (const source of [fromWiktionary, fromFreeDictionary]) {
+      try {
+        found = await source(term);
+        answered = true;
+        if (found) break;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // The teacher may have moved on (changed the word, closed the box, left the list).
+    const state = lookups.get(word.id);
+    if (!state || state.word !== term) return;
+    if (found) {
+      lookups.set(word.id, { status: 'done', word: term, ...found, choices: found.choices.slice(0, MAX_CHOICES) });
+    } else {
+      lookups.set(word.id, {
+        status: 'error',
+        word: term,
+        message: answered
+          ? `No meaning found for “${term}”. Check the spelling, or type the meaning yourself.`
+          : 'The dictionary couldn\'t be reached. Check the internet connection, or type the meaning yourself.',
+      });
+    }
+    refreshRow(word);
+    const first = els.wordRows.querySelector(`[data-id="${word.id}"] .vw-choice`);
+    if (first) first.focus();
+  }
+
+  function pickMeaning(word, index) {
+    const choice = lookups.get(word.id).choices[index];
+    word.meaning = choice.meaning;
+    word.pos = choice.pos;
+    lookups.delete(word.id);
+    scheduleSave(current);
+    refreshRow(word);
+    const box = els.wordRows.querySelector(`[data-id="${word.id}"] .vw-meaning`);
+    if (box) box.focus();
+  }
+
   // ---------- Export and import
 
   function blobToDataURL(blob) {
@@ -631,6 +811,8 @@
     for (const w of list.words.filter((x) => x.word.trim())) {
       words.push({
         word: w.word.trim(),
+        meaning: w.meaning.trim(),
+        pos: w.pos,
         image: w.image ? (typeof w.image === 'string' ? w.image : await blobToDataURL(w.image)) : null,
         audio: w.audio ? await blobToDataURL(w.audio) : null,
       });
@@ -663,6 +845,8 @@
       if (!w || typeof w.word !== 'string') continue;
       const word = newWord();
       word.word = w.word;
+      if (typeof w.meaning === 'string') word.meaning = w.meaning;
+      if (typeof w.pos === 'string') word.pos = w.pos;
       if (typeof w.image === 'string' && w.image) {
         word.image = w.image.startsWith('data:') ? await dataURLToBlob(w.image) : w.image;
       }
@@ -700,10 +884,12 @@
     els.setupTitle.textContent = list.name || 'Untitled list';
     const words = usableWords(list);
     const withPictures = words.filter((w) => w.image).length;
-    els.setupCount.textContent = plural(words.length, 'word');
+    const noMeaning = words.filter((w) => !w.meaning.trim()).length;
+    els.setupCount.textContent = plural(words.length, 'word')
+      + (noMeaning ? ` (${noMeaning} without a meaning yet: the answer shows just the word and picture)` : '');
     els.imageNote.textContent = withPictures === words.length
-      ? 'Students say the word.'
-      : `Students say the word. Only ${withPictures} of the ${plural(words.length, 'word')} have a picture; the others come up another way.`;
+      ? 'Students say what it is.'
+      : `Students say what it is. Only ${withPictures} of the ${plural(words.length, 'word')} have a picture; the others come up another way.`;
     for (const box of els.typeBoxes) box.checked = settings.types.includes(box.value);
     els.shuffleOpt.checked = settings.shuffle;
     els.sayOpt.checked = settings.say;
@@ -731,6 +917,11 @@
     let skipped = 0;
     for (const word of usableWords(current)) {
       const ways = settings.types.filter((t) => t !== 'image' || word.image);
+      // A word with no picture and no meaning would show itself as its own answer.
+      if (!word.image && !word.meaning.trim()) {
+        const i = ways.indexOf('word');
+        if (i !== -1 && ways.length > 1) ways.splice(i, 1);
+      }
       if (!ways.length) { skipped += 1; continue; }
       cards.push({ word, type: ways[Math.floor(Math.random() * ways.length)] });
     }
@@ -778,8 +969,8 @@
 
   const PROMPTS = {
     image: 'What is this?',
-    word: 'What does this word mean?',
-    sound: 'What word do you hear?',
+    word: 'What does it mean?',
+    sound: 'What word is this? What does it mean?',
   };
 
   function renderCard() {
@@ -836,6 +1027,8 @@
       if (word.image) body.append(stageImage(word));
       const answer = el('div', 'stage-answer');
       answer.append(el('p', 'stage-word', word.word));
+      if (word.pos) answer.append(el('p', 'stage-pos', word.pos));
+      if (word.meaning.trim()) answer.append(el('p', 'stage-meaning', word.meaning.trim()));
       const hear = el('button', 'btn stage-hear');
       hear.type = 'button';
       hear.innerHTML = `${ICONS.speaker}<span>Hear it</span>`;
@@ -920,9 +1113,21 @@
   });
 
   els.wordRows.addEventListener('input', (e) => {
-    if (!e.target.classList.contains('vw-word')) return;
-    const word = wordOfRow(e.target.closest('.vw-row'));
-    word.word = e.target.value;
+    const row = e.target.closest('.vw-row');
+    const word = wordOfRow(row);
+    if (!word) return;
+    if (e.target.classList.contains('vw-word')) {
+      word.word = e.target.value;
+      // Meanings looked up for the old spelling no longer apply.
+      const lookup = lookups.get(word.id);
+      if (lookup && lookup.word !== word.word.trim()) {
+        lookups.delete(word.id);
+        const box = row.querySelector('.vw-choices');
+        if (box) box.remove();
+      }
+    } else if (e.target.classList.contains('vw-meaning')) {
+      word.meaning = e.target.value;
+    } else return;
     scheduleSave(current);
     updateCount();
   });
@@ -949,6 +1154,17 @@
         break;
       case 'remove-image':
         word.image = null;
+        scheduleSave(current);
+        refreshRow(word);
+        break;
+      case 'lookup': lookUp(word); break;
+      case 'pick-meaning': pickMeaning(word, Number(btn.dataset.choice)); break;
+      case 'close-lookup':
+        lookups.delete(word.id);
+        refreshRow(word);
+        break;
+      case 'clear-pos':
+        word.pos = '';
         scheduleSave(current);
         refreshRow(word);
         break;
@@ -1009,7 +1225,8 @@
     // A plain link pasted into the word box is just text.
     if (typeof image === 'string' && document.activeElement.classList.contains('vw-word') && !e.clipboardData.getData('text/html')) return;
     e.preventDefault();
-    const word = current.words.find((w) => w.id === activeRowId)
+    const word = wordOfRow(document.activeElement.closest('.vw-row'))
+      || current.words.find((w) => w.id === activeRowId)
       || current.words.find((w) => !w.image)
       || current.words[current.words.length - 1];
     setPicture(word, image);
@@ -1074,6 +1291,13 @@
     if (db) {
       try {
         lists = await run('readonly', (store) => store.getAll());
+        // Lists saved before words had meanings.
+        for (const list of lists) {
+          for (const w of list.words) {
+            if (typeof w.meaning !== 'string') w.meaning = '';
+            if (typeof w.pos !== 'string') w.pos = '';
+          }
+        }
       } catch (err) {
         console.error(err);
         lists = [];
