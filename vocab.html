@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vocabulary review · Path.er</title>
+  <meta name="description" content="Make a list of the words your class learned, then review them as pictures, written words or sounds.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/site.css">
+  <link rel="stylesheet" href="css/vocab.css">
+</head>
+<body class="vocab-page">
+  <header class="site-header">
+    <a class="btn back-btn" id="backBtn" href="index.html"><span aria-hidden="true">←</span> <span id="backLabel">Back to start</span></a>
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="19" r="2.6"/><circle cx="12" cy="19" r="2.6"/><circle cx="19" cy="19" r="2.6"/><path d="M12 7.5v9M12 10l-6.2 6.8M12 10l6.2 6.8" fill="none" stroke-width="1.8"/></svg>
+      </span>
+      Path.er
+    </a>
+  </header>
+
+  <main class="vocab">
+    <p id="storageWarning" class="vocab-warning" role="alert" hidden>
+      This browser isn't letting the page save, so your lists will be lost when you close it. Use <b>Export</b> to keep a copy of each list.
+    </p>
+
+    <!-- All lists -->
+    <section id="listsView" aria-labelledby="listsTitle" hidden>
+      <div class="vocab-intro">
+        <p class="eyebrow">For the classroom</p>
+        <h1 id="listsTitle">Vocabulary review</h1>
+        <p class="lead">Add the words your class learned, each with a picture. Next class, show them one at a time as a picture, the written word or its sound, and the students say the word.</p>
+        <div class="vocab-intro-actions">
+          <button type="button" id="newListBtn" class="btn btn-primary btn-large">New word list</button>
+          <button type="button" id="importBtn" class="btn btn-large">Open a list file</button>
+        </div>
+      </div>
+
+      <div id="listsGrid" class="vl-grid"></div>
+      <p id="listsEmpty" class="vl-empty" hidden>No word lists yet. Make one with <b>New word list</b>.</p>
+    </section>
+
+    <!-- One list -->
+    <section id="editView" aria-label="Word list" hidden>
+      <div class="ve-head">
+        <label class="ve-name-label" for="listName">List name</label>
+        <input id="listName" class="ve-name" type="text" autocomplete="off" spellcheck="false">
+        <p id="wordCount" class="ve-count"></p>
+        <div class="ve-actions">
+          <button type="button" id="reviewBtn" class="btn btn-primary btn-large">Review these words</button>
+          <button type="button" id="exportBtn" class="btn">Export</button>
+          <button type="button" id="deleteListBtn" class="btn btn-danger">Delete list</button>
+        </div>
+      </div>
+
+      <p class="ve-hint">
+        To add a picture: click <b>Add picture</b>, drag an image onto a word, or right-click an image on the web, choose <b>Copy image</b>, click the word and press <kbd>Ctrl</kbd>+<kbd>V</kbd>.
+      </p>
+
+      <ol id="wordRows" class="vw-rows"></ol>
+      <button type="button" id="addWordBtn" class="btn vw-add">+ Add a word</button>
+    </section>
+
+    <!-- Review setup -->
+    <section id="setupView" aria-labelledby="setupTitle" hidden>
+      <div class="vs-panel">
+        <p class="eyebrow">Review</p>
+        <h1 id="setupTitle"></h1>
+        <p id="setupCount" class="vs-count"></p>
+
+        <fieldset class="vs-group">
+          <legend>Show each word as</legend>
+          <label class="vs-choice">
+            <input type="checkbox" name="type" value="image">
+            <span><b>A picture</b><small id="imageNote">Students say the word.</small></span>
+          </label>
+          <label class="vs-choice">
+            <input type="checkbox" name="type" value="word">
+            <span><b>The written word</b><small>Students read it and say what it means.</small></span>
+          </label>
+          <label class="vs-choice">
+            <input type="checkbox" name="type" value="sound">
+            <span><b>Its sound</b><small>Students listen and say the word.</small></span>
+          </label>
+          <p class="vs-mixed">Tick more than one to mix them: each word comes up one way, picked at random.</p>
+        </fieldset>
+
+        <fieldset class="vs-group">
+          <legend>Options</legend>
+          <label class="vs-check"><input type="checkbox" id="shuffleOpt"> Shuffle the words</label>
+          <label class="vs-check"><input type="checkbox" id="sayOpt"> Say the word aloud when the answer is shown</label>
+        </fieldset>
+
+        <p id="setupError" class="vs-error" role="alert" hidden></p>
+        <div class="vs-actions">
+          <button type="button" id="startBtn" class="btn btn-primary btn-large">Start the review</button>
+          <button type="button" id="editListBtn" class="btn btn-large">Edit the words</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Full-screen review -->
+  <div id="stage" class="stage" role="dialog" aria-modal="true" aria-label="Vocabulary review" hidden>
+    <div class="stage-top">
+      <span id="stageProgress" class="stage-progress"></span>
+      <div class="stage-bar" aria-hidden="true"><span id="stageBarFill"></span></div>
+      <button type="button" id="fullscreenBtn" class="btn">Full screen</button>
+      <button type="button" id="closeStageBtn" class="btn">Close</button>
+    </div>
+    <div id="stageCard" class="stage-card" aria-live="polite"></div>
+    <div id="stageNav" class="stage-nav">
+      <button type="button" id="prevBtn" class="btn btn-large"><span aria-hidden="true">←</span> Back</button>
+      <button type="button" id="nextBtn" class="btn btn-primary btn-large stage-next">Show answer</button>
+    </div>
+    <p class="stage-keys"><kbd>Space</kbd> show answer / next · <kbd>←</kbd> back · <kbd>S</kbd> play the sound · <kbd>Esc</kbd> close</p>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <input type="file" id="imageInput" accept="image/*" hidden>
+  <input type="file" id="importInput" accept=".json,application/json" multiple hidden>
+
+  <script src="js/vocab.js"></script>
+</body>
+</html>
