@@ -30,7 +30,7 @@
       <div class="vocab-intro">
         <p class="eyebrow">For the classroom</p>
         <h1 id="listsTitle">Vocabulary review</h1>
-        <p class="lead">Add the words your class learned, with their meanings and a picture. Next class, show each one as a picture, the written word or its sound, and the students say what it is. Then reveal the word and its meaning.</p>
+        <p class="lead">Add the words your class learned. For each one, choose what the students see: a picture, the written word or its sound. In class, they say what it is, then you reveal the word and its meaning.</p>
         <div class="vocab-intro-actions">
           <button type="button" id="newListBtn" class="btn btn-primary btn-large">New word list</button>
           <button type="button" id="importBtn" class="btn btn-large">Open a list file</button>
@@ -55,7 +55,7 @@
       </div>
 
       <p class="ve-hint">
-        <b>Look up meaning</b> finds dictionary meanings for a word; click the one you taught. To add a picture: click <b>Add picture</b>, drag an image onto a word, or right-click an image on the web, choose <b>Copy image</b>, click the word and press <kbd>Ctrl</kbd>+<kbd>V</kbd>.
+        For each word, choose what the students see: <b>Picture</b>, <b>Word</b> or <b>Sound</b>. Then type the word and its meaning for the answer (<b>Look up meaning</b> finds dictionary meanings). To add a picture, click <b>Add picture</b>, drag an image onto the word, or copy an image from the web, click the word and press <kbd>Ctrl</kbd>+<kbd>V</kbd>.
       </p>
 
       <ol id="wordRows" class="vw-rows"></ol>
@@ -69,30 +69,11 @@
         <h1 id="setupTitle"></h1>
         <p id="setupCount" class="vs-count"></p>
 
-        <fieldset class="vs-group">
-          <legend>Show each word as</legend>
-          <label class="vs-choice">
-            <input type="checkbox" name="type" value="image">
-            <span><b>A picture</b><small id="imageNote">Students say what it is.</small></span>
-          </label>
-          <label class="vs-choice">
-            <input type="checkbox" name="type" value="word">
-            <span><b>The written word</b><small>Students say what it means.</small></span>
-          </label>
-          <label class="vs-choice">
-            <input type="checkbox" name="type" value="sound">
-            <span><b>Its sound</b><small>Students say the word they hear and what it means.</small></span>
-          </label>
-          <p class="vs-mixed">Tick more than one to mix them: each word comes up one way, picked at random. <b>Show answer</b> then reveals the word with its meaning and picture.</p>
-        </fieldset>
+        <p class="vs-how">Each word comes up the way you chose for it: its picture, the written word, or its sound. <b>Show answer</b> then shows the word and its meaning.</p>
+        <ul id="setupNotes" class="vs-notes" hidden></ul>
 
-        <fieldset class="vs-group">
-          <legend>Options</legend>
-          <label class="vs-check"><input type="checkbox" id="shuffleOpt"> Shuffle the words</label>
-          <label class="vs-check"><input type="checkbox" id="sayOpt"> Say the word aloud when the answer is shown</label>
-        </fieldset>
+        <label class="vs-check"><input type="checkbox" id="shuffleOpt"> Shuffle the words</label>
 
-        <p id="setupError" class="vs-error" role="alert" hidden></p>
         <div class="vs-actions">
           <button type="button" id="startBtn" class="btn btn-primary btn-large">Start the review</button>
           <button type="button" id="editListBtn" class="btn btn-large">Edit the words</button>

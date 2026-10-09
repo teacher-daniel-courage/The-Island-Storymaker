@@ -20,6 +20,7 @@
   const MAX_IMAGE_BYTES = 1.5 * 1024 * 1024;
   const MAX_RECORDING_MS = 10000;
   const PAGE_TITLE = document.title;
+  const SHOW_MODES = ['image', 'word', 'sound'];
 
   const $ = (selector) => document.querySelector(selector);
   const els = {
@@ -44,11 +45,8 @@
     setupView: $('#setupView'),
     setupTitle: $('#setupTitle'),
     setupCount: $('#setupCount'),
-    imageNote: $('#imageNote'),
-    typeBoxes: document.querySelectorAll('#setupView input[name="type"]'),
     shuffleOpt: $('#shuffleOpt'),
-    sayOpt: $('#sayOpt'),
-    setupError: $('#setupError'),
+    setupNotes: $('#setupNotes'),
     startBtn: $('#startBtn'),
     editListBtn: $('#editListBtn'),
     stage: $('#stage'),
@@ -65,9 +63,9 @@
 
   const ICONS = {
     image: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>',
+    text: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7V5h14v2M12 5v14M9 19h6"/></svg>',
     speaker: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
     mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>',
-    play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z"/></svg>',
     stop: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/></svg>',
     close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
     trash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M10 4h4M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg>',
@@ -124,10 +122,10 @@
   }
 
   function loadSettings() {
-    const defaults = { types: ['image', 'word', 'sound'], shuffle: true, say: true };
+    const defaults = { shuffle: true };
     try {
       const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
-      if (saved && Array.isArray(saved.types)) return { ...defaults, ...saved };
+      if (saved && typeof saved.shuffle === 'boolean') return { shuffle: saved.shuffle };
     } catch { /* use the defaults */ }
     return defaults;
   }
@@ -300,7 +298,8 @@
   }
 
   function newWord() {
-    return { id: newId(), word: '', meaning: '', pos: '', image: null, audio: null };
+    // show: what the students see in the review ('image', 'word' or 'sound').
+    return { id: newId(), word: '', meaning: '', pos: '', show: 'word', image: null, audio: null };
   }
 
   function usableWords(list) {
@@ -357,14 +356,7 @@
     updateCount();
   }
 
-  function buildRow(word, index) {
-    const row = el('li', 'vw-row');
-    row.dataset.id = word.id;
-    if (word.id === activeRowId) row.classList.add('is-active');
-
-    row.append(el('span', 'vw-num', String(index + 1)));
-
-    // Picture
+  function buildPicture(word) {
     const pic = el('div', 'vw-pic');
     if (word.image) {
       pic.classList.add('has-pic');
@@ -393,9 +385,69 @@
       add.innerHTML = `${ICONS.image}<span>Add picture</span>`;
       pic.append(add);
     }
+    return pic;
+  }
 
-    // Word, meaning and sound
+  function buildWordPreview(word) {
+    const box = el('div', 'vw-preview');
+    const text = el('span', 'vw-preview-word', word.word.trim() || 'Type the word');
+    if (!word.word.trim()) text.classList.add('is-empty');
+    box.append(text);
+    return box;
+  }
+
+  function buildSound(word) {
+    const box = el('div', 'vw-sound');
+    const play = el('button', 'vw-sound-play');
+    play.type = 'button';
+    play.dataset.act = 'play-sound';
+    play.innerHTML = ICONS.speaker;
+    play.append(el('span', null, word.audio ? 'Play my recording' : 'Play computer voice'));
+    box.append(play);
+    if (recording && recording.wordId === word.id) {
+      const stop = iconButton('stop-recording', ICONS.stop, 'Stop recording');
+      stop.classList.add('is-recording');
+      box.append(stop);
+    } else if (word.audio) {
+      box.append(iconButton('delete-recording', ICONS.close, 'Use computer voice'));
+    } else {
+      box.append(iconButton('record', ICONS.mic, 'Record my voice'));
+    }
+    return box;
+  }
+
+  function buildRow(word, index) {
+    const row = el('li', 'vw-row');
+    row.dataset.id = word.id;
+    if (word.id === activeRowId) row.classList.add('is-active');
+
+    row.append(el('span', 'vw-num', String(index + 1)));
+
+    // What the students are shown: a picture, the word or its sound.
+    const show = el('div', 'vw-show');
+    show.append(el('span', 'vw-show-label', 'Students see'));
+    const modes = el('div', 'vw-modes');
+    modes.setAttribute('role', 'group');
+    modes.setAttribute('aria-label', `Show word ${index + 1} to the students as`);
+    for (const [mode, icon, label] of [['image', ICONS.image, 'Picture'], ['word', ICONS.text, 'Word'], ['sound', ICONS.speaker, 'Sound']]) {
+      const btn = el('button', 'vw-mode');
+      btn.type = 'button';
+      btn.dataset.act = 'show';
+      btn.dataset.show = mode;
+      btn.setAttribute('aria-pressed', String(word.show === mode));
+      btn.innerHTML = icon;
+      btn.append(el('span', null, label));
+      modes.append(btn);
+    }
+    show.append(modes);
+    if (word.show === 'image') show.append(buildPicture(word));
+    else if (word.show === 'sound') show.append(buildSound(word));
+    else show.append(buildWordPreview(word));
+
+    // The answer: the word and its meaning.
     const main = el('div', 'vw-main');
+    main.append(el('span', 'vw-show-label', 'Answer'));
+
     const line = el('div', 'vw-line');
     const input = el('input', 'vw-word');
     input.type = 'text';
@@ -468,25 +520,8 @@
       choices.append(close);
     }
 
-    const sound = el('div', 'vw-sound');
-    sound.append(iconButton('speak', ICONS.speaker, 'Computer voice'));
-    if (recording && recording.wordId === word.id) {
-      const stop = iconButton('stop-recording', ICONS.stop, 'Stop recording');
-      stop.classList.add('is-recording');
-      sound.append(stop);
-    } else if (word.audio) {
-      sound.append(iconButton('play-recording', ICONS.play, 'My recording'));
-      const del = iconButton('delete-recording', ICONS.close, '');
-      del.classList.add('vw-icon-only');
-      del.setAttribute('aria-label', 'Delete my recording');
-      del.title = 'Delete my recording';
-      sound.append(del);
-    } else {
-      sound.append(iconButton('record', ICONS.mic, 'Record my voice'));
-    }
     main.append(line, meaningWrap);
     if (choices) main.append(choices);
-    main.append(sound);
 
     const del = el('button', 'vw-delete');
     del.type = 'button';
@@ -495,7 +530,7 @@
     del.title = 'Delete this word';
     del.innerHTML = ICONS.trash;
 
-    row.append(pic, main, del);
+    row.append(show, main, del);
     return row;
   }
 
@@ -545,6 +580,7 @@
   async function setPicture(word, source) {
     try {
       word.image = typeof source === 'string' ? source : await shrinkImage(source);
+      word.show = 'image';
     } catch (err) {
       console.error(err);
       showToast('That picture couldn\'t be used. Try a different one.');
@@ -663,11 +699,12 @@
       const target = list && list.words.find((w) => w.id === wordId);
       if (target && !discard && chunks.length) {
         target.audio = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        target.show = 'sound';
         scheduleSave(list);
       }
       if (target && current === list) {
         refreshRow(target);
-        const play = els.wordRows.querySelector(`[data-id="${wordId}"] [data-act="play-recording"]`);
+        const play = els.wordRows.querySelector(`[data-id="${wordId}"] [data-act="play-sound"]`);
         if (play) play.focus();
       }
     };
@@ -813,6 +850,7 @@
         word: w.word.trim(),
         meaning: w.meaning.trim(),
         pos: w.pos,
+        show: w.show,
         image: w.image ? (typeof w.image === 'string' ? w.image : await blobToDataURL(w.image)) : null,
         audio: w.audio ? await blobToDataURL(w.audio) : null,
       });
@@ -851,6 +889,7 @@
         word.image = w.image.startsWith('data:') ? await dataURLToBlob(w.image) : w.image;
       }
       if (typeof w.audio === 'string' && w.audio.startsWith('data:')) word.audio = await dataURLToBlob(w.audio);
+      word.show = SHOW_MODES.includes(w.show) ? w.show : (word.image ? 'image' : 'word');
       list.words.push(word);
     }
     lists.push(list);
@@ -876,6 +915,11 @@
 
   // ---------- Review setup
 
+  // Words set to Picture that have no picture yet are left out of the review.
+  function missingPictures(list) {
+    return usableWords(list).filter((w) => w.show === 'image' && !w.image);
+  }
+
   function showSetup(list) {
     current = list;
     document.title = `Review: ${list.name || 'Untitled list'} · ${PAGE_TITLE}`;
@@ -883,27 +927,30 @@
     els.setupView.hidden = false;
     els.setupTitle.textContent = list.name || 'Untitled list';
     const words = usableWords(list);
-    const withPictures = words.filter((w) => w.image).length;
-    const noMeaning = words.filter((w) => !w.meaning.trim()).length;
-    els.setupCount.textContent = plural(words.length, 'word')
-      + (noMeaning ? ` (${noMeaning} without a meaning yet: the answer shows just the word and picture)` : '');
-    els.imageNote.textContent = withPictures === words.length
-      ? 'Students say what it is.'
-      : `Students say what it is. Only ${withPictures} of the ${plural(words.length, 'word')} have a picture; the others come up another way.`;
-    for (const box of els.typeBoxes) box.checked = settings.types.includes(box.value);
-    els.shuffleOpt.checked = settings.shuffle;
-    els.sayOpt.checked = settings.say;
-    els.setupError.hidden = true;
-    els.startBtn.disabled = words.length === 0;
-  }
+    const missing = missingPictures(list);
+    const ready = words.filter((w) => !missing.includes(w));
+    const count = (mode) => ready.filter((w) => w.show === mode).length;
+    const parts = [
+      count('image') && `${count('image')} as a picture`,
+      count('word') && `${count('word')} as the written word`,
+      count('sound') && `${count('sound')} as a sound`,
+    ].filter(Boolean);
+    els.setupCount.textContent = ready.length
+      ? `${plural(ready.length, 'word')}: ${parts.join(', ')}.`
+      : 'No words ready to review yet.';
 
-  function readSetup() {
-    settings = {
-      types: [...els.typeBoxes].filter((b) => b.checked).map((b) => b.value),
-      shuffle: els.shuffleOpt.checked,
-      say: els.sayOpt.checked,
-    };
-    saveSettings();
+    const notes = [];
+    if (missing.length) {
+      notes.push(`Left out because they're set to Picture but have no picture yet: ${missing.map((w) => `“${w.word.trim()}”`).join(', ')}.`);
+    }
+    const noMeaning = ready.filter((w) => !w.meaning.trim()).length;
+    if (noMeaning) notes.push(`${plural(noMeaning, 'word')} ${noMeaning === 1 ? 'has' : 'have'} no meaning yet, so the answer will show just the word.`);
+    els.setupNotes.innerHTML = '';
+    for (const n of notes) els.setupNotes.append(el('li', null, n));
+    els.setupNotes.hidden = !notes.length;
+
+    els.shuffleOpt.checked = settings.shuffle;
+    els.startBtn.disabled = ready.length === 0;
   }
 
   // ---------- The review itself
@@ -913,43 +960,22 @@
   let revealed = false;
 
   function buildDeck() {
-    const cards = [];
-    let skipped = 0;
-    for (const word of usableWords(current)) {
-      const ways = settings.types.filter((t) => t !== 'image' || word.image);
-      // A word with no picture and no meaning would show itself as its own answer.
-      if (!word.image && !word.meaning.trim()) {
-        const i = ways.indexOf('word');
-        if (i !== -1 && ways.length > 1) ways.splice(i, 1);
-      }
-      if (!ways.length) { skipped += 1; continue; }
-      cards.push({ word, type: ways[Math.floor(Math.random() * ways.length)] });
-    }
+    const missing = missingPictures(current);
+    const cards = usableWords(current).filter((w) => !missing.includes(w));
     if (settings.shuffle) {
       for (let i = cards.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
         [cards[i], cards[j]] = [cards[j], cards[i]];
       }
     }
-    return { cards, skipped };
+    return cards;
   }
 
   function startReview() {
-    readSetup();
-    if (!settings.types.length) {
-      els.setupError.textContent = 'Tick at least one way to show the words.';
-      els.setupError.hidden = false;
-      return;
-    }
-    const { cards, skipped } = buildDeck();
-    if (!cards.length) {
-      els.setupError.textContent = 'None of these words has a picture yet. Add pictures, or tick another way to show the words.';
-      els.setupError.hidden = false;
-      return;
-    }
-    els.setupError.hidden = true;
-    if (skipped) showToast(`${plural(skipped, 'word')} without a picture left out.`);
-    deck = cards;
+    settings = { shuffle: els.shuffleOpt.checked };
+    saveSettings();
+    deck = buildDeck();
+    if (!deck.length) return;
     pos = 0;
     revealed = false;
     els.stage.hidden = false;
@@ -970,9 +996,11 @@
   const PROMPTS = {
     image: 'What is this?',
     word: 'What does it mean?',
-    sound: 'What word is this? What does it mean?',
+    sound: 'Listen. What word is it?',
   };
 
+  // Before the answer: only what the teacher chose for this word (its picture,
+  // the written word, or its sound). The answer: the word and its meaning.
   function renderCard() {
     stopSounds();
     const card = els.stageCard;
@@ -980,7 +1008,7 @@
     const done = pos >= deck.length;
     els.stageProgress.textContent = done ? `${deck.length} / ${deck.length}` : `${pos + 1} / ${deck.length}`;
     els.stageBarFill.style.width = `${((done ? deck.length : pos + (revealed ? 1 : 0)) / deck.length) * 100}%`;
-    els.prevBtn.disabled = pos === 0;
+    els.prevBtn.disabled = pos === 0 && !revealed;
 
     if (done) {
       card.className = 'stage-card is-done';
@@ -989,7 +1017,7 @@
       const again = el('button', 'btn btn-primary btn-large', 'Review again');
       again.type = 'button';
       again.addEventListener('click', () => {
-        deck = buildDeck().cards;
+        deck = buildDeck();
         pos = 0;
         revealed = false;
         renderCard();
@@ -1007,35 +1035,28 @@
     }
 
     els.stageNav.classList.remove('is-done');
-    const { word, type } = deck[pos];
+    const word = deck[pos];
+    const type = word.show;
     card.className = `stage-card is-${type}${revealed ? ' is-revealed' : ''}`;
     card.append(el('p', 'stage-question', revealed ? 'Answer' : PROMPTS[type]));
 
     const body = el('div', 'stage-body');
     if (!revealed) {
       if (type === 'image') body.append(stageImage(word));
-      else if (type === 'word') body.append(el('p', 'stage-word', word.word));
-      else {
+      else if (type === 'sound') {
         const listen = el('button', 'stage-listen');
         listen.type = 'button';
         listen.innerHTML = `${ICONS.speaker}<span>Play again</span>`;
         listen.addEventListener('click', () => playWord(word));
         body.append(listen);
         playWord(word);
-      }
+      } else body.append(el('p', 'stage-word', word.word));
     } else {
-      if (word.image) body.append(stageImage(word));
       const answer = el('div', 'stage-answer');
       answer.append(el('p', 'stage-word', word.word));
       if (word.pos) answer.append(el('p', 'stage-pos', word.pos));
       if (word.meaning.trim()) answer.append(el('p', 'stage-meaning', word.meaning.trim()));
-      const hear = el('button', 'btn stage-hear');
-      hear.type = 'button';
-      hear.innerHTML = `${ICONS.speaker}<span>Hear it</span>`;
-      hear.addEventListener('click', () => playWord(word));
-      answer.append(hear);
       body.append(answer);
-      if (settings.say) playWord(word);
     }
     card.append(body);
     els.nextBtn.innerHTML = revealed
@@ -1046,7 +1067,7 @@
   function stageImage(word) {
     const img = el('img', 'stage-img');
     img.src = srcOf(word.image);
-    img.alt = revealed ? word.word : 'Picture of the word';
+    img.alt = 'Picture of the word';
     img.addEventListener('error', () => img.replaceWith(el('p', 'stage-broken', 'The picture didn\'t load.')), { once: true });
     return img;
   }
@@ -1118,6 +1139,11 @@
     if (!word) return;
     if (e.target.classList.contains('vw-word')) {
       word.word = e.target.value;
+      const preview = row.querySelector('.vw-preview-word');
+      if (preview) {
+        preview.textContent = word.word.trim() || 'Type the word';
+        preview.classList.toggle('is-empty', !word.word.trim());
+      }
       // Meanings looked up for the old spelling no longer apply.
       const lookup = lookups.get(word.id);
       if (lookup && lookup.word !== word.word.trim()) {
@@ -1168,15 +1194,22 @@
         scheduleSave(current);
         refreshRow(word);
         break;
-      case 'speak':
-        if (word.word.trim()) speak(word.word);
-        else showToast('Type the word first.');
+      case 'show':
+        if (word.show === btn.dataset.show) return;
+        word.show = btn.dataset.show;
+        scheduleSave(current);
+        refreshRow(word);
+        els.wordRows.querySelector(`[data-id="${word.id}"] [data-show="${word.show}"]`).focus();
+        break;
+      case 'play-sound':
+        if (word.audio) playRecording(word);
+        else if (word.word.trim()) speak(word.word);
+        else showToast('Type the word first, or record your voice.');
         break;
       case 'record': startRecording(word); break;
       case 'stop-recording': stopRecording(); break;
-      case 'play-recording': playRecording(word); break;
       case 'delete-recording':
-        if (!confirm('Delete your recording of this word? The computer voice will be used instead.')) return;
+        if (!confirm('Delete your recording of this word? The computer voice will read it instead.')) return;
         word.audio = null;
         scheduleSave(current);
         refreshRow(word);
@@ -1243,7 +1276,6 @@
     }
   });
 
-  els.typeBoxes.forEach((box) => box.addEventListener('change', () => { els.setupError.hidden = true; }));
   els.startBtn.addEventListener('click', startReview);
   els.nextBtn.addEventListener('click', next);
   els.prevBtn.addEventListener('click', prev);
@@ -1269,7 +1301,7 @@
       e.preventDefault();
       prev();
     } else if (e.key === 's' || e.key === 'S') {
-      if (pos < deck.length) playWord(deck[pos].word);
+      if (pos < deck.length && !revealed && deck[pos].show === 'sound') playWord(deck[pos]);
     } else if (e.key === 'f' || e.key === 'F') {
       toggleFullscreen();
     }
@@ -1296,6 +1328,7 @@
           for (const w of list.words) {
             if (typeof w.meaning !== 'string') w.meaning = '';
             if (typeof w.pos !== 'string') w.pos = '';
+            if (!SHOW_MODES.includes(w.show)) w.show = w.image ? 'image' : 'word';
           }
         }
       } catch (err) {
